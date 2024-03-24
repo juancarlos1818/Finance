@@ -98,20 +98,25 @@ optimal_vol = get_ret_vol_sr(optimal_weights)[1]
 optimal_sr = get_ret_vol_sr(optimal_weights)[2]
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ARMADO DE FRONTERA++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-frontier_vol = np.linspace(0.0023, port_volatility.max(), PUNTOS_FRONTERA)
+frontier_vol = np.linspace(0, port_volatility.max(), PUNTOS_FRONTERA)
 frontier_return = []
 frontier_sr = []
 
 def maximize_ret(pesos):
     return get_ret_vol_sr(pesos)[0]*-1
 
+bounds2 = []
+for i in range(NUMERO_ACTIVOS):
+    bounds2.append((-1,1))
+
 for possible_vol in frontier_vol:
     cons = ({'type':'eq','fun':check_sum},
             {'type':'eq','fun':lambda w:get_ret_vol_sr(w)[1] - possible_vol})
-    result = optimize.minimize(maximize_ret, init_guess, method='SLSQP', constraints=cons, bounds=bounds)
+    result = optimize.minimize(maximize_ret, init_guess, method='SLSQP', constraints=cons, bounds=bounds2)
     frontier_return.append(get_ret_vol_sr(result.x)[0])
     frontier_sr.append(get_ret_vol_sr(result.x)[2])
 
+# +++++++++++++++++++++++++++++++++++++++++++++++++++EXPORTAR DATA ++++++++++++++++++++++++++++++++++++++++++++++++++
 headers = ["Volatilidad", "Retornos", "Sharpe"]
 
 data_frontera = pd.DataFrame(data={"Volatilidad": frontier_vol, "Retorno": frontier_return})
@@ -120,7 +125,7 @@ data_optimo = pd.DataFrame(data={"activos": retornos_historicos.keys(), "Pesos":
 workbook.sheets(OUTPUT_FRONTERA).range("A1").value = data_frontera
 workbook.sheets(OUTPUT_PESOS).range("A1").value = data_optimo
 
-
+# +++++++++++++++++++++++++++++++++++++++++++++++++++GRAFICAR DATA ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 plt.figure(figsize=(12,6))
 plt.scatter(frontier_vol,frontier_return,c=frontier_sr, cmap='plasma')
@@ -131,4 +136,4 @@ plt.xlabel('Volatility', fontsize=15)
 plt.ylabel('Return', fontsize=15)
 plt.title('Efficient Frontier', fontsize=15)
 plt.show()
-# +++++++++++++++++++++++++++++++++++++++++++++++++++EXPORTAR FRONTERA EFICIENTE++++++++++++++++++++++++++++++++++++++++++++++++++
+
